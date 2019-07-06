@@ -1,14 +1,13 @@
-#include "app.hpp"
-#include "matriz.hpp"
-#include "util.hpp"
-#include "knapsackSolver.hpp"
-
 #include <iostream>
-#include <cstdlib>
 #include <limits>
 #include <string>
 #include <fstream>
 #include <chrono>
+#include <cstdlib>
+#include <cmath>
+
+#include "app.hpp"
+#include "util.hpp"
 
 App::App() {
 
@@ -52,7 +51,7 @@ void App::menuMatriz() {
          std::cin >> caminhoArquivo;
          limpaBuffer();
          if (!driverMultiplicacao(escolha, caminhoArquivo)) {
-            std::cerr <<"\nerro ao abrir o arquivo\n\n";
+            std::cerr <<"\n\nerro ao abrir o arquivo\n\n";
          }
          pressionaParaRetornar();
       } else if (escolha != SAIR) {
@@ -116,17 +115,17 @@ void App::pressionaParaRetornar() {
    limpaBuffer();
 }
 
-bool App::driverMultiplicacao(int escolha, const std::string &caminhoArquivo) {
+bool App::carregaMatrizes(Matriz *&mat1, Matriz *&mat2, const std::string 
+&caminhoArquivo) {
+   std::clog << "\ncarregando arquivo...";
    std::ifstream arquivo(caminhoArquivo);
    if (arquivo.fail()) {
       return false;
    }
-
-   
    eliminaAte(arquivo, '=');
    int dimensaoMat1;
    arquivo >> dimensaoMat1;
-   Matriz *mat1 = new Matriz(dimensaoMat1);
+   mat1 = new Matriz(dimensaoMat1);
    int valor;
    for (int i = 0; i < dimensaoMat1; ++i) {
       for (int j = 0; j < dimensaoMat1; ++j) {
@@ -137,13 +136,20 @@ bool App::driverMultiplicacao(int escolha, const std::string &caminhoArquivo) {
    eliminaAte(arquivo, '=');
    int dimensaoMat2;
    arquivo >> dimensaoMat2;
-   Matriz *mat2 = new Matriz(dimensaoMat2);
+   mat2 = new Matriz(dimensaoMat2);
    for (int i = 0; i < dimensaoMat2; ++i) {
       for (int j = 0; j < dimensaoMat2; ++j) {
          arquivo >> valor;
          mat2->set(i, j, valor);
       }
    }
+   arquivo.close();
+   return true;
+}
+
+int App::tempoEstimadoMatrizes(int n, int escolha) {
+   Matriz *mat1 = new Matriz(512);
+   Matriz *mat2 = new Matriz(512);
 
    auto start = std::chrono::high_resolution_clock::now();
    if (escolha == 1) {
@@ -152,23 +158,62 @@ bool App::driverMultiplicacao(int escolha, const std::string &caminhoArquivo) {
       Matriz *mat3 = mat1->multiplica(mat2, Matriz::Algoritmo::STRASSEN);
    }
    auto stop = std::chrono::high_resolution_clock::now(); 
+   delete mat1;
+   delete mat2;
+
+   int duracao =  std::chrono::duration_cast<std::chrono::milliseconds>
+      (stop - start).count();
+
+   //alg trivial
+   if (escolha == 1) {
+      return duracao * pow(n, 3) / pow(512, 3);
+   }
+   //strassen
+   return duracao * pow(n, log2(7)) / pow(512, log2(7)); 
+}
+
+bool App::driverMultiplicacao(int escolha, const std::string &caminhoArquivo) {
+   //mat1 e mat2 sao passados por referencia
+   Matriz *mat1, *mat2;
+   if (!carregaMatrizes(mat1, mat2, caminhoArquivo)) {
+      return false;
+   }
+
+   if (mat1->getNumColunas() >= 1024) {
+      std::cout << "\n\ncalculando tempo estimado..." << std::endl;
+      int tempoEstimado = tempoEstimadoMatrizes(mat1->getNumLinhas(), escolha);
+      std::cout << "\nTempo estimado: ";
+      mostraTempoFormatado(tempoEstimado * 1.5);
+
+   }
+   
+   std::clog << "calculando...";
+   auto start = std::chrono::high_resolution_clock::now();
+   if (escolha == 1) {
+      Matriz *mat3 = mat1->multiplica(mat2, Matriz::Algoritmo::TRIVIAL);
+   } else {
+      Matriz *mat3 = mat1->multiplica(mat2, Matriz::Algoritmo::STRASSEN);
+   }
+   auto stop = std::chrono::high_resolution_clock::now(); 
+
    int duracao = std::chrono::duration_cast<std::chrono::milliseconds>
       (stop - start).count();
    
-   std::cout << "\nTempo de execucao: ";
+   std::cout << "\n\nTempo de execucao: ";
    mostraTempoFormatado(duracao);
 
    delete mat1;
    delete mat2;
-   arquivo.close();
    return true;
 }
 
-bool App::driverMochila(int escolha, const std::string &caminhoArquivo) {
+bool App::carregaMochila(KnapsackSolver *&solver, 
+const std::string &caminhoArquivo) {
    std::ifstream arquivo(caminhoArquivo);
    if (arquivo.fail()) {
       return false;
    }
+
    int capacidade, n;
    eliminaAte(arquivo, '=');
    arquivo >> capacidade;
@@ -189,15 +234,22 @@ bool App::driverMochila(int escolha, const std::string &caminhoArquivo) {
       if (i != n - 1)
          eliminaAte(arquivo, ',');
    }
+   solver = new KnapsackSolver(capacidade, n, pesos, valores);
+   arquivo.close();
+   return true;
+}
 
-   KnapsackSolver *solver = new KnapsackSolver(capacidade, n, pesos, valores);
-   int *solucao;
+bool App::driverMochila(int escolha, const std::string &caminhoArquivo) {
+   KnapsackSolver *solver;
+   if (!carregaMochila(solver, caminhoArquivo)) {
+      return false;
+   }
 
    auto start = std::chrono::high_resolution_clock::now();
    if (escolha == 1) {
-      solucao = solver->resolve(KnapsackSolver::Algoritmo::BACKTRACKING);
+      int *solucao = solver->resolve(KnapsackSolver::Algoritmo::BACKTRACKING);
    } else {
-      solucao = solver->resolve(KnapsackSolver::Algoritmo::BACKTRACKING);
+      int *solucao = solver->resolve(KnapsackSolver::Algoritmo::DP);
    }
    auto stop = std::chrono::high_resolution_clock::now(); 
    int duracao = std::chrono::duration_cast<std::chrono::milliseconds>
@@ -206,7 +258,6 @@ bool App::driverMochila(int escolha, const std::string &caminhoArquivo) {
    std::cout << "\nTempo de execucao: ";
    mostraTempoFormatado(duracao);
 
-   delete solver;   
-   arquivo.close();
+   delete solver;
    return true;
 }

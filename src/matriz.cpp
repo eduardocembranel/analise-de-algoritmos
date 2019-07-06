@@ -15,7 +15,7 @@ Matriz::Matriz(int linhas, int colunas) {
 }
 
 void Matriz::inicializaMatriz(int linhas, int colunas) {
-   celulas = new int[linhas * colunas];
+   celulas = new int[linhas * colunas]();
    this->numLinhas = linhas;
    this->numColunas = colunas;
 }

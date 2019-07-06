@@ -35,17 +35,15 @@ void mostraTempoFormatado(int milisegundos) {
    std::cout << segundos << " segundo(s), ";
    if (milisegundos < 10)
       std::cout << "0";
-   std::cout << milisegundos << " milisegundo(s)\n\n";
-}
-
-void inicializaArray(int *v, int n, int elem) {
-   for (size_t i = 0; i < n; ++i) {
-      v[i] = elem;
-   }
+   std::cout << milisegundos << " milisegundo(s)\n" << std::endl;
 }
 
 void copiaArray(int *arr1, int *arr2, int n) {
    for (int i = 0; i < n; ++i) {
       arr1[i] = arr2[i];
    }
+}
+
+bool par(int x) {
+   return (x % 2 == 0);
 }

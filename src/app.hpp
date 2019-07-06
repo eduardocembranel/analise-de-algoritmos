@@ -3,6 +3,9 @@
 
 #include <string>
 
+#include "matriz.hpp"
+#include "knapsackSolver.hpp"
+
 class App {
    public:
       App();
@@ -21,6 +24,10 @@ class App {
       void pressionaParaRetornar();
       bool driverMultiplicacao(int, const std::string&);
       bool driverMochila(int, const std::string&);
+
+      bool carregaMatrizes(Matriz *&, Matriz *&, const std::string &);
+      int tempoEstimadoMatrizes(int, int);
+      bool carregaMochila(KnapsackSolver *&, const std::string &);
 };
 
 #endif // !APP_HPP
