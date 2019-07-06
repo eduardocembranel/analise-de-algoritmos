@@ -35,10 +35,10 @@ int main() {
    if (arquivo.is_open()) {
       std::cout << "Gerando arquivo...\n";
       geraArquivo(dimensao, arquivo);
-      std::cout << "\nArquivo gerado com sucesso...";
+      std::cout << "\nArquivo gerado com sucesso...\n";
       arquivo.close();
    } else {
-      std::cerr << "\nerro inesperado...";
+      std::cerr << "\nerro inesperado...\n";
    }
    return 0;
 }
