@@ -1,12 +1,10 @@
 #ifndef MATRIZ_HPP
 #define MATRIZ_HPP
 
-#include <vector>
+#include <string>
 
 class Matriz {
    public:
-      enum class Algoritmo {TRIVIAL, STRASSEN};
-
       Matriz();
 
       Matriz(int);
@@ -15,40 +13,34 @@ class Matriz {
 
       ~Matriz();
 
-      int get(int, int);
-      
-      int *getCelulas(); 
+      int get(int, int) const;
+
+      int getNumLinhas() const;
+
+      int getNumColunas() const;
 
       void set(int, int, int);
 
       void mostra();
 
-      int getNumLinhas() const;
+      static void multiplicaTrivial(Matriz *&, Matriz *&, Matriz *&);
 
-      int getNumColunas() const;  
-
-      Matriz* multiplica(Matriz*, Algoritmo = Algoritmo::TRIVIAL);
-
-      Matriz* multiplicaTrivial(Matriz*);
-
-      Matriz* multiplicaStrassen(Matriz*);
-
-      Matriz* subtrai(Matriz*);
+      static void subtrai(Matriz *&, Matriz *&, Matriz *&);
       
-      Matriz* soma(Matriz*);
+      static void soma(Matriz *&, Matriz *&, Matriz *&);
 
-   public:
+      static void multiplicaStrassen(Matriz *&, Matriz *&, Matriz *&, int=64);
+
+      bool salvaMatriz(const std::string &);
+
+   private:
       int numLinhas;
       int numColunas;
       int *celulas;
       
       void inicializaMatriz(int, int);
 
-      size_t indice(int, int);
-
-      size_t indice(int, int, int);
-
-      void strassenAux(int*, int*, int*, int, int);
+      size_t indice(int, int) const;
 };
 
 #endif // !MATRIZ_HPP

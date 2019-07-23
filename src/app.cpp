@@ -115,6 +115,50 @@ void App::pressionaParaRetornar() {
    limpaBuffer();
 }
 
+bool App::driverMultiplicacao(int escolha, const std::string &caminhoArquivo) {
+   //mat1 e mat2 sao passados por referencia
+   Matriz *mat1, *mat2;
+   if (!carregaMatrizes(mat1, mat2, caminhoArquivo)) {
+      return false;
+   }
+   
+   std::clog << "\n\ncalculando...";
+   auto start = std::chrono::high_resolution_clock::now();
+   Matriz *mat3 = new Matriz(mat1->getNumLinhas());
+   if (escolha == 1) {
+      Matriz::multiplicaTrivial(mat1, mat2, mat3);
+   } else {
+      Matriz::multiplicaStrassen(mat1, mat2, mat3);
+   }
+   auto stop = std::chrono::high_resolution_clock::now(); 
+
+   int duracao = std::chrono::duration_cast<std::chrono::milliseconds>
+      (stop - start).count();
+   
+   std::cout << "\n\nTempo de execucao: ";
+   mostraTempoFormatado(duracao);
+
+   std::cout << "Deseja visualizar a solucao? (s/n) ";
+   char opcao;
+   std::cin >> opcao; limpaBuffer(); std::cout << "\n";
+   if (opcao == 's') {
+      std::string arqSaida;
+      std::cout << "Insira o nome para o arquivo de saida: ";
+      std::cin >> arqSaida; std::cout << "\n";
+      limpaBuffer();
+      if (mat3->salvaMatriz(arqSaida)) {
+         std::cout << "\nsolucao salva com sucesso!!\n\n";
+      } else {
+         std::cerr << "\nerro ao salvar solucao no arquivo...\n\n";
+      }
+   }
+
+   delete mat1;
+   delete mat2;
+   delete mat3;
+   return true;
+}
+
 bool App::carregaMatrizes(Matriz *&mat1, Matriz *&mat2, const std::string 
 &caminhoArquivo) {
    std::clog << "\ncarregando arquivo...";
@@ -147,63 +191,42 @@ bool App::carregaMatrizes(Matriz *&mat1, Matriz *&mat2, const std::string
    return true;
 }
 
-int App::tempoEstimadoMatrizes(int n, int escolha) {
-   Matriz *mat1 = new Matriz(512);
-   Matriz *mat2 = new Matriz(512);
-
-   auto start = std::chrono::high_resolution_clock::now();
-   if (escolha == 1) {
-      Matriz *mat3 = mat1->multiplica(mat2, Matriz::Algoritmo::TRIVIAL);
-   } else {
-      Matriz *mat3 = mat1->multiplica(mat2, Matriz::Algoritmo::STRASSEN);
-   }
-   auto stop = std::chrono::high_resolution_clock::now(); 
-   delete mat1;
-   delete mat2;
-
-   int duracao =  std::chrono::duration_cast<std::chrono::milliseconds>
-      (stop - start).count();
-
-   //alg trivial
-   if (escolha == 1) {
-      return duracao * pow(n, 3) / pow(512, 3);
-   }
-   //strassen
-   return duracao * pow(n, log2(7)) / pow(512, log2(7)); 
-}
-
-bool App::driverMultiplicacao(int escolha, const std::string &caminhoArquivo) {
-   //mat1 e mat2 sao passados por referencia
-   Matriz *mat1, *mat2;
-   if (!carregaMatrizes(mat1, mat2, caminhoArquivo)) {
+bool App::driverMochila(int escolha, const std::string &caminhoArquivo) {
+   KnapsackSolver *solver;
+   if (!carregaMochila(solver, caminhoArquivo)) {
       return false;
    }
-
-   if (mat1->getNumColunas() >= 1024) {
-      std::cout << "\n\ncalculando tempo estimado..." << std::endl;
-      int tempoEstimado = tempoEstimadoMatrizes(mat1->getNumLinhas(), escolha);
-      std::cout << "\nTempo estimado: ";
-      mostraTempoFormatado(tempoEstimado * 1.5);
-
-   }
    
-   std::clog << "calculando...";
+   std::clog << "\ncalculando...";
    auto start = std::chrono::high_resolution_clock::now();
    if (escolha == 1) {
-      Matriz *mat3 = mat1->multiplica(mat2, Matriz::Algoritmo::TRIVIAL);
+      int *solucao = solver->resolve(KnapsackSolver::Algoritmo::BACKTRACKING);
    } else {
-      Matriz *mat3 = mat1->multiplica(mat2, Matriz::Algoritmo::STRASSEN);
+      int *solucao = solver->resolve(KnapsackSolver::Algoritmo::DP);
    }
    auto stop = std::chrono::high_resolution_clock::now(); 
-
    int duracao = std::chrono::duration_cast<std::chrono::milliseconds>
       (stop - start).count();
    
    std::cout << "\n\nTempo de execucao: ";
    mostraTempoFormatado(duracao);
 
-   delete mat1;
-   delete mat2;
+   std::cout << "Deseja visualizar a solucao? (s/n) ";
+   char opcao;
+   std::cin >> opcao; limpaBuffer(); std::cout << "\n";
+   if (opcao == 's') {
+      std::string arqSaida;
+      std::cout << "Insira o nome para o arquivo de saida: ";
+      std::cin >> arqSaida;
+      limpaBuffer();
+      if (solver->salvaSolucao(arqSaida)) {
+         std::cout << "\nsolucao salva com sucesso!!\n\n";
+      } else {
+         std::cerr << "\nerro ao salvar solucao no arquivo...\n\n";
+      }
+   }
+
+   delete solver;
    return true;
 }
 
@@ -236,28 +259,5 @@ const std::string &caminhoArquivo) {
    }
    solver = new KnapsackSolver(capacidade, n, pesos, valores);
    arquivo.close();
-   return true;
-}
-
-bool App::driverMochila(int escolha, const std::string &caminhoArquivo) {
-   KnapsackSolver *solver;
-   if (!carregaMochila(solver, caminhoArquivo)) {
-      return false;
-   }
-
-   auto start = std::chrono::high_resolution_clock::now();
-   if (escolha == 1) {
-      int *solucao = solver->resolve(KnapsackSolver::Algoritmo::BACKTRACKING);
-   } else {
-      int *solucao = solver->resolve(KnapsackSolver::Algoritmo::DP);
-   }
-   auto stop = std::chrono::high_resolution_clock::now(); 
-   int duracao = std::chrono::duration_cast<std::chrono::milliseconds>
-      (stop - start).count();
-   
-   std::cout << "\nTempo de execucao: ";
-   mostraTempoFormatado(duracao);
-
-   delete solver;
    return true;
 }

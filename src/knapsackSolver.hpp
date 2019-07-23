@@ -1,6 +1,8 @@
 #ifndef KNAPSACKSOLVER_HPP
 #define KNAPSACKSOLVER_HPP
 
+#include <string>
+
 class KnapsackSolver {
    public:
       enum class Algoritmo {BACKTRACKING, DP};
@@ -13,10 +15,7 @@ class KnapsackSolver {
 
       int *resolve(Algoritmo = Algoritmo::DP);
 
-      int getN() const;
-
-      //debug
-      void mostra();
+      bool salvaSolucao(const std::string &);
 
    private:
       int W;
@@ -27,16 +26,13 @@ class KnapsackSolver {
       int *solucao;
       int valorMaximo;
 
-      void dfs(int&, int&, int*, int);
-
       int *resolveComBacktracking();
+
+      void dfs(int&, int&, int*, int);
 
       int *resolveComDP();
 
-      int *obtemSolucao(int *);
-
-      void obtemSolucaoAux(int *, int *, int, int);
-      
+      int *obtemSubconjunto(char *); 
 };
 
 #endif // !KNAPSACKSOLER_HPP

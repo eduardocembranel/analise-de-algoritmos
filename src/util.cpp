@@ -44,6 +44,34 @@ void copiaArray(int *arr1, int *arr2, int n) {
    }
 }
 
+int **aloca2dArray(int l, int c) {
+   int **array = new int*[l];
+   for (int i = 0; i < l; ++i) {
+      array[i] = new int[c];
+   }
+   return array;
+}
+
+int **desaloca2dArray(int **array, int l) {
+   for (int i = 0; i < l; ++i) {
+      free(array[i]);
+   }
+   free(array);
+   return NULL;
+}
+
 bool par(int x) {
    return (x % 2 == 0);
+}
+
+void setBit(char &c, int pos) {
+   c |= 1 << pos;
+}
+
+void unsetBit(char &c, int pos) {
+   c &= ~(1 << pos);
+}
+
+int getBit(char c, int pos) {
+   return (c >> pos & 1);
 }

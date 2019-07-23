@@ -15,18 +15,29 @@ class App {
       enum opcoesMenu {INDEFINIDO = -1, MATRIZ = 1, MOCHILA, SAIR};
 
       void mostraMenu();
+
       void mostraMenuMatriz();
+
       void mostraMenuMochila();
+
       void menuMatriz();
+
       void menuMochila();
+
       void limpaTela();
+
       void limpaBuffer();
+
       void pressionaParaRetornar();
-      bool driverMultiplicacao(int, const std::string&);
-      bool driverMochila(int, const std::string&);
+
+      bool driverMultiplicacao(int, const std::string &);
+
+      bool driverMochila(int, const std::string &);
 
       bool carregaMatrizes(Matriz *&, Matriz *&, const std::string &);
+
       int tempoEstimadoMatrizes(int, int);
+
       bool carregaMochila(KnapsackSolver *&, const std::string &);
 };
 

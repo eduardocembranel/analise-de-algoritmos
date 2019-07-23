@@ -1,38 +1,22 @@
+#include <cmath> //para std::ceil
+#include <fstream>
+
 #include "knapsackSolver.hpp"
 #include "util.hpp"
 
-//debug
-#include <iostream>
+typedef long long int ll;
 
 KnapsackSolver::KnapsackSolver() {
 
 }
 
-KnapsackSolver::KnapsackSolver(int capacidade, int n, int *pesos, int *valores) {
-   W = capacidade;
+KnapsackSolver::KnapsackSolver(int W, int n, int *pesos, int *valores) {
+   this->W = W;
    this->n  = n;
    this->pesos = pesos;
    this->valores = valores;
    solucao = new int[n]();
    valorMaximo = 0;
-}
-
-int KnapsackSolver::getN() const {
-   return n;
-}
-
-//para debug
-void KnapsackSolver::mostra() {
-   std::cout << "W = " << W << "\n";
-   std::cout << "N = " << n << "\n";
-   for (int i = 0; i < n; ++i) {
-      std::cout << valores[i] << " ";
-   }
-   std::cout << "\n";
-   for (int i = 0; i < n; ++i) {
-      std::cout << pesos[i] << " ";
-   }
-   std::cout << "\n";
 }
 
 int *KnapsackSolver::resolve(Algoritmo alg) {
@@ -45,11 +29,10 @@ int *KnapsackSolver::resolve(Algoritmo alg) {
 int *KnapsackSolver::resolveComBacktracking() {
    //variaveis auxiliares
    int *objetos = new int[n]();
-   int pesoAtual = 0, valorAtual = 0;
-   valorMaximo = 0;
+   int pesoAtual = 0, valorAtual = 0; valorMaximo = 0;
 
    //busca em profundidade
-   dfs(pesoAtual, valorAtual, objetos, n - 1);
+   dfs(pesoAtual, valorAtual, objetos, n);
 
    delete objetos;
    return solucao;
@@ -65,17 +48,17 @@ void KnapsackSolver::dfs(int &pesoAtual, int &valorAtual, int *objetos, int k) {
    }
 
    //se ainda ha possibilidades a serem checadas
-   if (k >= 0) {
+   if (k > 0) {
       //possibilidade com o objeto (se o peso total nao exceder a capacidade)
-      if (pesoAtual + pesos[k] <= W) {
-         pesoAtual += pesos[k];
-         valorAtual += valores[k];
-         objetos[k] = 1;
+      if (pesoAtual + pesos[k - 1] <= W) {
+         pesoAtual += pesos[k - 1];
+         valorAtual += valores[k - 1];
+         objetos[k - 1] = 1;
          dfs(pesoAtual, valorAtual, objetos, k - 1);
          //backtracking
-         pesoAtual -= pesos[k];
-         valorAtual -= valores[k];
-         objetos[k] = 0;
+         pesoAtual -= pesos[k - 1];
+         valorAtual -= valores[k - 1];
+         objetos[k - 1] = 0;
       }
       //possibilidade sem o objeto
       dfs(pesoAtual, valorAtual, objetos, k - 1);
@@ -83,56 +66,86 @@ void KnapsackSolver::dfs(int &pesoAtual, int &valorAtual, int *objetos, int k) {
 }
 
 int *KnapsackSolver::resolveComDP() {
-   //z[n+1][W+1]
-   int *z = new int[(n + 1) * (W + 1)];
+   //matriz base da DP (usamos apenas 2 linhas: atual e anterior)
+   int **z = aloca2dArray(2, W + 1);
 
-   //0 para todos elementos da primeira linha
-   for (int i = 0; i <= W; ++i) {
-      //z[0][i]
-      z[i] = 0;
+   //primeira linha eh inicializada com 0
+   for (int j = 0; j <= W; ++j) {
+      z[0][j] = 0;
    }
-   //0 para todos elementos da primeira coluna
-   for (int i = 0; i <= n; ++i) {
-      //z[i][0]
-      z[i * (W + 1)] = 0;
-   }
+
+   //vetor keep de tamanho: ⌈(n + 1) * (W + 1) / 8⌉
+   //keep armazena caracteres (byte a byte), e cada char contem
+   //8 bits (0 ou 1). Cada bit pode ser importante no final 
+   //do procedimento para obter o subconjunto de item da solucao
+   //por isso nao podemos descarta-los
+   ll keepSize = std::ceil((ll)(n + 1) * (W + 1) / 8.0);
+   char *keep = new char[keepSize];
 
    for (int i = 1; i <= n; ++i) {
-      for (int j = 1; j <= W; ++j) {
-         if (pesos[i - 1] <= j) {
-            //z[i][j] = maximo(valores[i-1] + z[i-1][j-pesos[i-1]], z[i-1][j])
-            z[i * (W + 1) + j] = std::max(valores[i - 1] + z[(i - 1) * (W + 1) 
-            + j - pesos[i - 1]], z[(i - 1) * (W + 1) + j]);
-         } else {
-            //z[i][j] = z[i-1][W]
-            z[i * (W + 1) + j] = z[(i - 1) * (W + 1) + j];
+      //se estamos na linha impar, a linha anterior sera a linha 0
+      //se estamos na linha par, a linha anterior sera a linha 1
+      //precisamos separar a logica para cada situacao
+      if (!par(i)) {
+         for (int j = 0; j <= W; ++j) {
+            if ((pesos[i - 1] <= j) &&
+            (valores[i - 1] + z[0][j - pesos[i - 1]]  > z[0][j])) {
+               z[1][j] = valores[i - 1] + z[0][j - pesos[i - 1]];
+               setBit(keep[((ll)i*(W + 1) + j) / 8], ((ll)i*(W + 1) + j) % 8);
+            } else {
+               z[1][j] = z[0][j];
+               unsetBit(keep[((ll)i*(W + 1) + j) / 8], ((ll)i*(W + 1) + j) % 8);
+            }
+         }
+      } else {
+         for (int j = 0; j <= W; ++j) {
+            if ((pesos[i - 1] <= j) &&
+            (valores[i - 1] + z[1][j - pesos[i - 1]]  > z[1][j])) {
+               z[0][j] = valores[i - 1] + z[1][j - pesos[i - 1]]; 
+               setBit(keep[((ll)i*(W + 1) + j) / 8], ((ll)i*(W + 1) + j) % 8);
+            } else {
+               z[0][j] = z[1][j];
+               unsetBit(keep[((ll)i*(W + 1) + j) / 8], ((ll)i*(W + 1) + j) % 8);
+            }
          }
       }
    }
-   //valorMaximo = z[n][W]
-   valorMaximo = z[n * ( W + 1) + W];
-   return obtemSolucao(z);
+   valorMaximo = par(n) ? z[0][W] : z[1][W];
+   z = desaloca2dArray(z, 2);
+   return obtemSubconjunto(keep);
 }
 
-int *KnapsackSolver::obtemSolucao(int *z) {
-   int *x = new int[n]();
-   obtemSolucaoAux(x, z, n - 1, W);
-   copiaArray(solucao, x, n);
-   delete z;
-   delete x;
+int *KnapsackSolver::obtemSubconjunto(char *keep) {
+   for (int i = n, j = W; i >= 1; --i) {
+      ll posKeep = ((ll)i * (W + 1) + j) / 8;
+      ll posBit  = ((ll)i * (W + 1) + j) % 8;
+      if (getBit(keep[posKeep], posBit) == 1) {
+         solucao[i - 1] = 1;
+         j -= pesos[i - 1];
+      } else {
+         solucao[i - 1] = 0;
+      }
+   }
+   delete keep;
    return solucao;
 }
 
-void KnapsackSolver::obtemSolucaoAux(int *x, int *z, int k, int d) {
-   if (k >= 0) {
-      if (z[(k + 1) * (W + 1) + d] == z[k * (W + 1) + d]) {
-         x[k] = 0;
-         obtemSolucaoAux(x, z, k - 1, d);
-      } else {
-         x[k] = 1;
-         obtemSolucaoAux(x, z, k - 1, d - pesos[k]);
+bool KnapsackSolver::salvaSolucao(const std::string &arquivo) {
+   std::ofstream buffer(arquivo);
+   if (buffer.fail()) {
+      return false;
+   }
+   buffer << "Valor total = " << valorMaximo << "\n";
+   buffer << "Vetor solucao = {";
+   for (size_t i = 0; i < n; ++i) {
+      buffer << solucao[i];
+      if (i < n - 1) {
+         buffer << ", ";
       }
    }
+   buffer << "}";
+   buffer.close();
+   return true;
 }
 
 KnapsackSolver::~KnapsackSolver() {
