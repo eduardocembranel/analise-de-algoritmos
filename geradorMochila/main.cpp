@@ -9,7 +9,7 @@ void geraArquivo(int n, int W, std::ofstream &arquivo) {
    arquivo << "n = " << n << "\n";
    arquivo << "w = {";
    for (int i = 0; i < n; ++i) {
-      int wi = rand() % (W / 2);
+      int wi = (rand() % (4 * W / n)) + 1;
       arquivo << wi;
       if (i != n - 1) {
          arquivo << ", ";
@@ -19,7 +19,7 @@ void geraArquivo(int n, int W, std::ofstream &arquivo) {
    }
    arquivo << "c = {";
    for (int i = 0; i < n; ++i) {
-      int ci = rand() % (n * 2);
+      int ci = rand() % n;
       arquivo << ci;
       if (i != n - 1) {
          arquivo << ", ";
